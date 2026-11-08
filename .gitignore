@@ -10,7 +10,6 @@
 *.run.xml
 *.synctex.gz
 *.toc
-*.pdf
 *-blx.bib
 *.nav
 *.snm
@@ -27,6 +26,4 @@
 .DS_Store
 Thumbs.db
 .vscode/
-.idea/
-
 .idea/
