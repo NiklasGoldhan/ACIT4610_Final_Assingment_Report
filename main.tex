@@ -1,0 +1,36 @@
+% Use 'stu' for student papers, or 'man' for journal manuscripts
+% Use 'floatsintext' to integrate tables and figures within the text (standard for student reports)
+\documentclass[stu, 12pt, floatsintext]{apa7}
+
+\usepackage[american]{babel}
+\usepackage{csquotes}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{threeparttable}
+\usepackage{amsmath}
+
+% APA 7 citation engine (requires biber)
+\usepackage[style=apa, backend=biber]{biblatex}
+\addbibresource{references.bib}
+
+% Paper Metadata
+\title{Collaborative Research in APA 7th Edition}
+
+% Authors
+\authorsnames{Alexander Hoem, Michael Huse, Noah {\O}fsti, Niklas Goldhan}
+\authorsaffiliations{Department of Computer Science, Oslo Metropolitan University}
+\course{ACIT4610: Evolutionary Artificial Intelligence and Robotics}
+\professor{Dr. Jane Vance}
+\duedate{November 15, 2026}
+
+\begin{document}
+\maketitle
+
+% Individual section imports
+\input{sections/alexander.tex}
+\input{sections/michael.tex}
+\input{sections/noah.tex}
+\input{sections/niklas.tex}
+
+\printbibliography
+\end{document}

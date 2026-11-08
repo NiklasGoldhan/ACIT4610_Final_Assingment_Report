@@ -1,0 +1,32 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.pdf
+*-blx.bib
+*.nav
+*.snm
+*.vrb
+*.lof
+*.lot
+*.xdv
+*.upa
+*.upb
+*.ttt
+*.fff
+
+# OS / Editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+.idea/

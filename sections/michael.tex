@@ -1,0 +1,39 @@
+% !TEX root = ../main.tex
+\section{Michael}
+Clear visual hierarchy and structured data representation enhance the readability of empirical reports.
+In APA 7, introduce technical terms or key terminology with \textit{italics} upon first mention rather than boldface.
+Reserve \textbf{bold text} primarily for table titles, section headings, and specific mathematical vectors.
+
+\subsection{Text Formatting and Lists}
+Unordered lists are appropriate when the sequence of elements has no inherent chronological or ranked order.
+In APA 7, list items that form complete sentences must begin with a capital letter and conclude with appropriate punctuation:
+\begin{itemize}
+    \item Selection pressures govern the reproductive probability of candidate solutions.
+    \item Crossover operators facilitate the recombination of genetic material between parents.
+    \item Mutation mechanisms maintain population diversity across evolutionary epochs.
+\end{itemize}
+
+\subsection{APA 7 Compliant Tables}
+Tables in APA 7 omit vertical borders and rely strictly on horizontal rules at the top, header baseline, and footer.
+The table number appears in bold, followed by a double-spaced title in italicized title case.
+Table notes positioned immediately below the table provide abbreviations and explanatory context.
+
+\begin{table}[htbp]
+\caption{Baseline Hyperparameters for Algorithmic Comparison}
+\label{tab:hyperparameters}
+\begin{threeparttable}
+\begin{tabular}{llrr}
+\toprule
+Algorithm & Selection Operator & Population Size & Mutation Rate \\
+\midrule
+GA & Tournament ($k=3$) & 100 & .015 \\
+ES & $(\mu, \lambda)$ Selection & 60 & .050 \\
+PSO & Global Best Topology & 80 & --- \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}[flushleft]
+\small
+\item \textit{Note.} GA = Genetic Algorithm; ES = Evolution Strategy; PSO = Particle Swarm Optimization. Dashes indicate parameters that do not apply to the specific algorithm. Floating rates below 1.0 omit leading zeros in accordance with APA 7 standards.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

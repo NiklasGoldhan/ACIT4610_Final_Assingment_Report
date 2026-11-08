@@ -1,0 +1,14 @@
+# Set default behavior to automatically normalize line endings
+* text=auto eol=lf
+
+# TeX source files with TeX-aware diff driver
+*.tex text diff=tex
+*.bib text diff=bibtex
+*.sty text diff=tex
+*.cls text diff=tex
+
+# Binary document and media formats
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
