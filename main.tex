@@ -83,14 +83,21 @@
 
 % Main content
 \section{Bees Algorithm}
-The bees algorithm is a swarm intelligence algorithm which mimics the food foraging behavior of bees. It was introduced by Pham and colleagues in 2006 \cite{Pham2006}. It has applications in both combinatorial and functional optimization.
+The bees algorithm is a swarm intelligence algorithm which mimics the food foraging behavior of bees. 
+Introduced by Pham and colleagues in 2006 \cite{Pham2006}, it has applications in both combinatorial and continuous function optimization. 
+In this section, we will examine the algorithm's capabilities across both problem types, focusing on the Travelling Salesman Problem to assess combinatorial optimization and four different functions in high-dimensional spaces to assess continuous function optimization.
+Both problem types will be limited to 30,000 objective evaluations, this will serve as the stopping criteria. 
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\linewidth]{assets/bees_flowchart.pdf}
-    \caption{Flowchart of the Bees Algorithm. Adapted from Pham's 2009 paper\cite{Pham2009}.}
+    \caption{Flowchart of the Bees Algorithm.}
     \label{fig:bees-flowchart}
 \end{figure}
+
+The main procedural loop is composed of both a local and a global search, as can be observed in Figure~\ref{fig:bees-flowchart}. 
+Local search checks $n_b$ best sites and the top $n_e$ of these best sites, searching their neighborhoods with $n_{rb}$ and $n_{re}$ bees respectively, allowing the allocation of resources based on the ranking.
+The global component uses the rest of the $n_s$ budget to explore random sites, covering more of the problem space.
 
 \input{sections/noah.tex}
 

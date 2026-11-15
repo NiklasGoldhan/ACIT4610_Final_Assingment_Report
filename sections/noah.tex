@@ -1,23 +1,90 @@
 % !TEX root = ../main.tex
-\section{Noah}
-Empirical evaluations in evolutionary computing require rigorous statistical reporting and transparent procedural documentation.
-Sequential experimental protocols should be structured using numbered enumeration to communicate order of execution clearly.
+\subsection{Continuous Function Optimization}
+In this section, the Bees Algorithm is applied for the purposes of continuous function optimization. 
+The functions we aim to optimize are unshifted, noiseless functions from Surjanovic and Bingham's Simon Fraser University collection \cite{surjanovic_bingham}. 
+For benchmarking, 10 runs were performed at dimensions 10 and 30 with a limit of 30,000 objective evaluations. 
+The numpy function implementations were tested to confirm the global minimum along with one other control point derived from the function equations, this was done in "\textit{check\_functions.py}", with all checks passing.
+The optimization targets are:
 
-\subsection{Numbered Sequences and Procedures}
-When documenting iterative experimental benchmarks, numbered lists establish the exact procedural sequence:
-\begin{enumerate}
-    \item Random seeds and population vectors were initialized uniformly across sample spaces.
-    \item Fitness evaluations ran over 50 independent runs for each algorithmic variant.
-    \item Non-parametric statistical tests were executed to evaluate convergence speed.
-\end{enumerate}
+\textbf{Sphere:} 
 
-\subsection{Statistical and Mathematical Notation}
-APA 7 mandates specific typographic rules for statistical reporting.
-All single-letter statistical symbols and variables—such as \(p\), \(t\), \(F\), \(M\), \(SD\), and \(d\)—must appear in italics.
-Numbers, parentheses, and Greek letters like \(\alpha\) or \(\eta_p^2\) remain upright.
-Furthermore, numbers bounded between 0 and 1 that cannot theoretically exceed 1.0 (including \(p\)-values, correlation coefficients \(r\), and proportions) omit the leading zero.
+\begin{equation}
+    f(x)=\sum_{i=1}^{D}x_i^2
+\end{equation}
+Bounds: \(x_i \in [-5.12,5.12]\). Checked: \(f(0)=0\) and \(f(1) = D\).
 
-The evolutionary strategy demonstrated superior fitness over the baseline, \(M = 94.20\), \(SD = 3.15\), compared to the control group, \(M = 88.50\), \(SD = 4.22\).
-An independent samples \(t\)-test revealed a statistically significant difference, \(t(48) = 5.41\), \(p < .001\), \(d = 1.53\), with a 95\% confidence interval around the difference, \(95\% \text{ CI } [3.58, 7.82]\).
-Similarly, analysis of variance confirmed main effects across benchmark landscapes, \(F(2, 72) = 8.64\), \(p = .002\), \(\eta_p^2 = .19\).
-When accompanied by specific numerals, format percentages using the symbol, such as 95\% confidence and 12\% variance, but use the word \enquote{percentage} in abstract text.
+\textbf{Rosenbrock:}
+
+\begin{equation}
+    f(x)=\sum_{i=1}^{D-1}[100(x_{i+1}-x_i^2)^2+(1-x_i)^2]
+\end{equation}
+Bounds: \(x_i \in [-5,10]\). Checked: \(f(1)=0\) and \(f(0)=D-1\).
+
+\textbf{Rastrigin:}
+\begin{equation}
+    f(x)=10D+\sum_{i=1}^{D}[x_i^2-10cos(2\pi x_i)]
+\end{equation}
+Bounds: \(x_i \in [-5.12,5.12]\). Checked: \(f(0)=0\) and \(f(0.5)=20.25D\).
+
+\textbf{Ackley:}
+\begin{equation}
+    f(\mathbf{x}) = -20 \exp\left(-0.2 \sqrt{\frac{1}{D} \sum_{i=1}^{D} x_i^2}\right) - \exp\left(\frac{1}{D} \sum_{i=1}^{D} \cos(2\pi x_i)\right) + 20 + e
+\end{equation}
+Bounds: \(x_i \in [-32.768,32.768]\). Checked: \(f(0)=0\) and \(f(1) \approx 3.62538\).
+
+\subsubsection{Implementation}
+This implementation of the Bees Algorithm is primarily based upon the implementation described in the 2009 paper from Pham \& Castellani \cite{Pham2009}. In contrast to the TSP problem, the scout bees are initialized uniformally within the function bounds.
+
+\begin{table}[H]
+\centering
+\caption{Parameters and values used in the experiment}
+\label{tab:bees-params}
+\begin{tabular}{lll}
+\hline
+\textbf{Symbol} & \textbf{Value} & \textbf{Description} \\
+\hline
+$n_s$        & 13     & Number of scout bees (sites) \\
+$n_b$        & 6      & Number of best sites  \\
+$n_e$        & 3      & Number of elite sites among $n_b$ \\
+$n_{re}$     & 9      & Bees recruited per elite site \\
+$n_{rb}$     & 6      & Bees recruited per remaining best site \\
+$ngh$        & 0.1    & Initial neighborhood size as fraction of bounds \\
+$stlim$      & 20     & Stagnant cycles before a site is abandoned \\
+$\alpha$     & 0.95   & Neighborhood shrink factor ($0 < \alpha < 1$) \\
+$E_{\max}$   & 30,000 &Maximum number of function evaluations \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{algorithm}[H]
+\caption{Bees Algorithm with Site Abandonment}
+\label{alg:beesfunc}
+\begin{algorithmic}[1]
+\State Initialize and evaluate $n_s$ random sites within bounds
+\While{fewer than $E_{\max}$ evaluations}
+    \State Rank sites by fitness (ascending)
+    \For{each of the $n_b$ best sites}
+        \State Search neighborhood with $n_{re}$ bees if elite, else $n_{rb}$
+        \If{a better solution is found}
+            \State Move site there and reset stagnation counter
+        \Else
+            \State Shrink neighborhood by $\alpha$ and increment counter
+            \If{counter $\geq stlim$}
+                \State Abandon site and reinitialize randomly
+            \EndIf
+        \EndIf
+    \EndFor
+    \State Reinitialize remaining $n_s - n_b$ sites randomly
+\EndWhile
+\State \Return best solution found $(\mathbf{x}^*, f(x^*))$
+\end{algorithmic}
+\end{algorithm}
+
+What differentiates this version from the original 2006 implementation is the introduction of site abandonment.
+This addition allows for more exploration in the problem space by abandoning sites that have not improved for the last $stlim$ cycles.
+The algorithm also has neighborhood shrinkage proportional to the bounds of the problem space, which addresses insufficient search precision by honing in on promising areas.
+Since running the full benchmark was quite fast with the cap of 30,000 evaluations, it was feasible to do a sweep to find general parameters that achieve good scores overall on this varied set of problems.
+
+\subsubsection{Results}
+
+
