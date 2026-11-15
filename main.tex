@@ -1,37 +1,100 @@
-% Use 'stu' for student papers, or 'man' for journal manuscripts
-% Use 'floatsintext' to integrate tables and figures within the text (standard for student reports)
-\documentclass[stu, 12pt, floatsintext]{apa7}
+\documentclass[12pt,a4paper]{article}
 
+% Language and typography
 \usepackage[american]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
 \usepackage{csquotes}
+
+% Page layout
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{parskip}
+
+% Figures, tables, and mathematics
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{threeparttable}
 \usepackage{amsmath}
 \usepackage{float}
 
-% APA 7 citation engine (requires biber)
-\usepackage[style=apa, backend=biber]{biblatex}
+% APA 7 citations (requires Biber)
+\usepackage[
+    style=ieee,
+    backend=biber
+]{biblatex}
 \addbibresource{references.bib}
 
-% Paper Metadata
-\title{ACIT 4610 - Final Group Project - 2026}
+% Paper metadata
+\title{\textbf{ACIT 4610 -- Final Group Project}}
 
-% Authors
-\authorsnames{Alexander Hoem, Michael Huse, Noah {\O}fsti, Niklas Goldhan}
-\authorsaffiliations{Department of Computer Science, Oslo Metropolitan University}
-\course{ACIT4610: Evolutionary Artificial Intelligence and Robotics}
-\professor{Kazi Shah Nawaz Ripon}
-\duedate{November 15, 2026}
+\author{
+    Alexander Hoem \and
+    Michael Huse \and
+    Noah \O fsti \and
+    Niklas Goldhan
+}
+
+\date{\today}
 
 \begin{document}
-\maketitle
 
-% Individual section imports
-\input{sections/alexander.tex}
-\input{sections/michael.tex}
+% Title page
+\begin{titlepage}
+    \centering
+
+    \vspace*{3cm}
+
+    {\LARGE\bfseries
+    ACIT 4610 -- Final Group Project
+    \par}
+
+    \vspace{2cm}
+
+    {\Large Group 1} \\
+    {\large
+    Alexander Hoem\\
+    Michael Huse\\
+    Noah \O fsti\\
+    Niklas Goldhan
+    \par}
+
+    \vspace{1.5cm}
+
+    Department of Computer Science\\
+    Oslo Metropolitan University
+
+    \vspace{1cm}
+
+    ACIT4610: Evolutionary Artificial Intelligence and Robotics
+    
+
+    \vspace{1cm}
+
+    Professor: Kazi Shah Nawaz Ripon
+
+    \vfill
+
+    \today
+
+\end{titlepage}
+
+% Main content
+\section{Bees Algorithm}
+The bees algorithm is a swarm intelligence algorithm which mimics the food foraging behavior of bees. It was introduced by Pham and colleagues in 2006 \cite{Pham2006}. It has applications in both combinatorial and functional optimization.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{assets/bees_flowchart.pdf}
+    \caption{Flowchart of the Bees Algorithm. Adapted from Pham's 2009 paper\cite{Pham2009}.}
+    \label{fig:bees-flowchart}
+\end{figure}
+
 \input{sections/noah.tex}
-\input{sections/niklas.tex}
 
+% References
 \printbibliography
+
 \end{document}
