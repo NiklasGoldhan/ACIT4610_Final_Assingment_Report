@@ -1,126 +1,101 @@
 % !TEX root = ../main.tex
-\section{Problem 1: Bees Algorithm}
-\section{Part A: Travelling Salesman Problem (TSP)}
 
-\subsection{Bees Algorithm for TSP}
-The Bees Algorithm (BA) is an algorithm that is inspired by nature that mimics the foraging behavior of honey bees to solve optimization problems.
-For the Travelling Salesman Problem (TSP), it balances the global exploration across the search space (scout bees) with a more focused local exploitation around the most promising routes (recruited forager bees).
+\newpage
+% \section{Problem 1: Bees Algorithm}
+% The Bees Algorithm (BA) is a population-based search algorithm inspired by how honey bees forage for food.
+% In nature, scout bees search randomly for good flower patches and use a waggle dance at the hive to recruit follower bees based on the quality of each patch.
+% The algorithm uses this same idea to balance global exploration across the whole search space with focused local exploitation around the best solutions found so far.
+% In this problem, the Basic BA (without neighbourhood shrinking or site abandonment) is applied to both a discrete route-planning task in Part~A and continuous function optimization in Part~B.
 
-\subsection{Problem Formulation}
-The Travelling Salesman Problem requires finding the shortest complete round trip that visits \(n\) distinct cities exactly once and returns to the starting city.
+\subsection{Part A: Travelling Salesman Problem (TSP)}
 
-\begin{itemize}
-    \item \textbf{Solution Representation:} A single route is encoded as a permutation of city indices:
-    \begin{equation}
-        \pi = (\pi_1, \pi_2, \dots, \pi_n)
-    \end{equation}
-    City~1 is fixed at index~0 (\(\pi_1 = 1\)) to  make sure the beginning and end are always in the same spot.
-    It is only appended at the end when the script calculates the return journey or displaying the route.
-    \item \textbf{Objective Function:} The total route length \(L(\pi)\) sums all consecutive legs plus the return leg to City~1:
-    \begin{equation}
-        L(\pi) = \sum_{i=1}^{n-1} d_{\pi_i, \pi_{i+1}} + d_{\pi_n, \pi_1}
-    \end{equation}
-    \item \textbf{Percentage Gap:} Measures the relative solution quality against the known TSPLIB optimum (\(L^*\)):
-    \begin{equation}
-        \text{Gap}(\%) = 100 \times \frac{L_{\text{BA}} - L^*}{L^*}
-    \end{equation}
-\end{itemize}
+\subsubsection{Problem and Data}
+The Travelling Salesman Problem (TSP) models a delivery vehicle that starts at a depot, visits \(n\) distinct cities exactly once and returns to the starting depot.
+Because the distance between any two cities is the same in both directions, this is a symmetric TSP.
+The goal is to find the shortest complete round trip.
 
-\subsection{Data and Distance Calculation}
+Each candidate route is stored as an ordered list of city numbers, \(\pi = (\pi_1, \pi_2, \dots, \pi_n)\).
+City~1 is always fixed at the first position (\(\pi_1 = 1\)) so that every route starts at the same depot and duplicate shifted versions of the same loop are avoided.
+City~1 is only added to the end of the route when calculating the return distance or plotting the closed loop.
+The total length \(L(\pi)\) of a route is the sum of the distances between consecutive cities plus the return trip from the last city back to City~1:
+\begin{equation}
+    L(\pi) = \sum_{i=1}^{n-1} d_{\pi_i, \pi_{i+1}} + d_{\pi_n, \pi_1}.
+\end{equation}
+To check how close a possible route is to the known best solution \(L^*\), a percentage gap is calculated as:
+\begin{equation}
+    \text{Gap}(\%) = 100 \times \frac{L_{\text{BA}} - L^*}{L^*}.
+\end{equation}
 
-\subsubsection{Benchmark Instances}
-The experiments use six standard 2D symmetric TSP instances from the TSPLIB library:
+The experiments test six standard 2D symmetric benchmark instances from the TSPLIB library.
+Table~\ref{tab:benchmark_instances} lists the exact filenames, city counts, distance types and known optimal route lengths.
+These optimal lengths are only used at the end to check solution quality and compute percentage gaps, never to initialize or guide the search.
 
 \begin{table}[htbp]
 \caption{TSPLIB 2D Symmetric Benchmark Instances}
 \label{tab:benchmark_instances}
 \begin{threeparttable}
-\begin{tabular}{lclr}
+\begin{tabular}{llclr}
 \toprule
-Instance & Cities (\(n\)) & Edge Weight Type & Known Optimum (\(L^*\)) \\
+Instance & Filename & Cities (\(n\)) & Edge Weight Type & Known Optimum (\(L^*\)) \\
 \midrule
-\texttt{eil51}    & 51  & \texttt{EUC\_2D} & 426 \\
-\texttt{berlin52} & 52  & \texttt{EUC\_2D} & 7,542 \\
-\texttt{st70}     & 70  & \texttt{EUC\_2D} & 675 \\
-\texttt{eil76}    & 76  & \texttt{EUC\_2D} & 538 \\
-\texttt{kroA100}  & 100 & \texttt{EUC\_2D} & 21,282 \\
-\texttt{ch150}    & 150 & \texttt{EUC\_2D} & 6,528 \\
+\texttt{eil51}    & \texttt{eil51.tsp}    & 51  & \texttt{EUC\_2D} & 426 \\
+\texttt{berlin52} & \texttt{berlin52.tsp} & 52  & \texttt{EUC\_2D} & 7,542 \\
+\texttt{st70}     & \texttt{st70.tsp}     & 70  & \texttt{EUC\_2D} & 675 \\
+\texttt{eil76}    & \texttt{eil76.tsp}    & 76  & \texttt{EUC\_2D} & 538 \\
+\texttt{kroA100}  & \texttt{kroA100.tsp}  & 100 & \texttt{EUC\_2D} & 21,282 \\
+\texttt{ch150}    & \texttt{ch150.tsp}    & 150 & \texttt{EUC\_2D} & 6,528 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}[flushleft]
 \small
-\item \textit{Note.} All instances use 2D Euclidean rounded edge weights. Known optimum values (\(L^*\)) are taken from TSPLIB reference documentation.
+\item \textit{Note.} All instances use 2D Euclidean rounded distances. Known optimum values (\(L^*\)) are taken from TSPLIB reference documentation.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
 
-\subsubsection{Distance Calculation (\textnormal{\texttt{calc\_distance}})}
-Following the TSPLIB \texttt{EUC\_2D} standard, distances between coordinates \((a_i, b_i)\) and \((a_j, b_j)\) are rounded down to the nearest integer:
+Following the TSPLIB \texttt{EUC\_2D} rule, the distance \(d_{ij}\) between two cities at coordinates \((a_i, b_i)\) and \((a_j, b_j)\) is calculated by adding \(0.5\) to the Euclidean distance and rounding downward to the nearest integer:
 \begin{equation}
-    d_{ij} = \left\lfloor \sqrt{(a_i - a_j)^2 + (b_i - b_j)^2} + 0.5 \right\rfloor
+    d_{ij} = \left\lfloor \sqrt{(a_i - a_j)^2 + (b_i - b_j)^2} + 0.5 \right\rfloor.
 \end{equation}
-Each edge is rounded individually before summing.
-A precomputed \(n \times n\) distance matrix is build at the start (\texttt{create\_distance\_matrix}) for fast distance lookups during the run.
+Each individual part of the route is rounded before summing the full route, including the return leg.
+At the start of each experiment, all distances are stored in an \(n \times n\) distance table, so that route lengths can be read quickly during the search.
 
-\subsubsection{Validation Checks (\textnormal{\texttt{validate\_dataset\_metadata}})}
-Before running the algorithm, the parser validates the input files:
-\begin{itemize}
-    \item Checks that \texttt{TYPE == 'TSP'} and \texttt{EDGE\_WEIGHT\_TYPE == 'EUC\_2D'}.
-    \item Verifies that \texttt{DIMENSION} matches the number of parsed coordinate rows.
-    \item Checks that all city identifiers are unique.
-    \item Confirms that every generated route contains each city exactly once.
-\end{itemize}
+Before running the algorithm, the data loader runs several validation checks on each input file.
+It verifies that the required headers (\texttt{NAME}, \texttt{TYPE}, \texttt{DIMENSION}, \texttt{EDGE\_WEIGHT\_TYPE} and \texttt{NODE\_COORD\_SECTION}) are present and confirms that \texttt{TYPE} is \texttt{TSP} and \texttt{EDGE\_WEIGHT\_TYPE} is \texttt{EUC\_2D}.
+It also checks that \texttt{DIMENSION} matches the exact number of coordinate rows read from the file and that all city identifiers are unique.
+After each run, the returned best route is checked to confirm that City~1 is at the start and every city appears exactly once.
 
-\subsection{Neighborhood Operators}
-Both operators leave City~1 fixed at index~0 and sample from the remaining positions \(\{1, \dots, n-1\}\), guaranteeing that all generated neighbors remain valid permutations without needing repair.
+\subsubsection{Implementation and Experimental Setup}
+To explore nearby routes around a selected site, two neighborhood operators are implemented and compared.
+Both operators leave City~1 fixed at the first position and pick two random positions from the remaining cities \(\{2, \dots, n\}\).
+Each recruited forager bee creates one neighbor by applying a single random move, because both moves only rearrange existing cities, every new route remains a valid permutation automatically without needing any repair step or bounds handling.
 
-\subsubsection{Swap Operator (\textnormal{\texttt{swap\_operator}})}
-Randomly selects two different indices \(i\) and \(j\) from \(\{1, \dots, n-1\}\) and exchanges their cities:
-\begin{itemize}
-    \item \texttt{new\_trip[i] = trip[j]}, \texttt{new\_trip[j] = trip[i]}.
-    \item Exchanges the positions of two cities.
-    \item Breaks up to 4 existing edges in the route when \(i\) and \(j\) are non-adjacent.
-\end{itemize}
+The \textit{swap operator} picks two different positions \(i\) and \(j\) that are not City~1 and exchanges the cities at those two spots.
+If the two chosen positions are not right next to each other, swapping them breaks up to four existing connections in the route and forms new ones.
+The \textit{segment reversal operator} also picks two different positions \(i < j\) that are not City~1, but instead reverses the order of the entire segment of cities between them.
+Reversing a segment breaks only two connections at the ends of the segment while keeping all city connections inside the segment intact in reverse order.
 
-\subsubsection{Segment Reversal Operator (\textnormal{\texttt{reverse\_operator}})}
-Randomly selects two different indices \(i < j\) from \(\{1, \dots, n-1\}\) and reverses the entire segment between them:
-\begin{itemize}
-    \item \texttt{new\_trip[i : j + 1] = reversed(trip[i : j + 1])}.
-    \item Equivalent to a classical 2-opt inversion move.
-    \item Breaks exactly 2 edges and reconnects them while preserving all internal pairwise connections along the reversed segment.
-\end{itemize}
+The Basic BA begins by creating an initial population of \(n = 20\) scout bees with random routes, keeping City~1 fixed as the start.
+Each scout route is evaluated for its total length, the initial best value is recorded and the population is sorted from shortest to longest route.
+In every search cycle, the algorithm performs local search on the \(m = 6\) best routes.
+The top \(e = 2\) elite routes each recruit \(n_e = 20\) forager bees, while the remaining \(m - e = 4\) selected routes each recruit \(n_s = 8\) forager bees.
+Within each flower patch, every recruited forager tests one mutated neighbor around the site's route and only the single shortest route found in that patch is kept for the next population.
+To keep exploring new regions of the search space, the remaining \(n - m = 14\) bees are sent out as fresh random scouts (global search).
+At the end of the cycle, the 20 new bees (2 elite patch winners, 4 non-elite patch winners and 14 fresh random scouts) replace the old population and are sorted again by shortest route length.
 
-\subsection{Bees Algorithm Main Loop}
-The algorithm runs until reaching exactly 30,000 objective evaluations per run.
+Each full cycle performs \((2 \times 20) + (4 \times 8) + 14 = 86\) objective evaluations.
+Every run has a strict budget of 30,000 objective evaluations, which counts the initial scouts, all recruited neighbors (even when they are worse and not kept) and all fresh random scouts.
+The loop stops immediately once 30,000 evaluations are reached, allowing an incomplete final cycle and records the full best-so-far history along with the final best route.
+All implementation details and parameter settings are also documented in the project \texttt{README.md}.
 
-\begin{itemize}
-    \item \textbf{Initialization (\texttt{init\_population}):} Calls \texttt{generate\_initial\_trip()} to create \(n = 20\) random scout routes with City~1 fixed at index~0.
-    Calls \texttt{evaluator.evaluate()} on each scout to compute route length and updates the best-so-far record.
-    Sorts the initial population in ascending order of route length.
-    \item \textbf{Elite Sites Local Search (\texttt{search\_patch}):} Selects the top \(e = 2\) elite routes from the population.
-    For each elite site, recruits \(n_e = 20\) forager bees.
-    Each forager mutates the route using the chosen operator and evaluates its length.
-    Keeps only the single best route found within that patch (greedy selection).
-    \item \textbf{Selected Best Sites Local Search (\texttt{search\_patch}):} Selects the next \(m - e = 4\) best routes (\(m = 6\) total selected best sites).
-    For each site, recruits \(n_s = 8\) forager bees, generates mutated neighbors, and keeps only the patch winner.
-    \item \textbf{Global Scouting:} For the remaining \(n - m = 14\) slots, generates fresh random scout routes using \texttt{generate\_initial\_trip()}, evaluates each, and adds them to the new population to maintain diversity.
-    \item \textbf{Population Update and Termination:} Replaces the population with the 20 new bees (2 elite winners, 4 non-elite winners, 14 random scouts) and sorts by route length.
-    Each full iteration evaluates \((2 \times 20) + (4 \times 8) + 14 = 86\) possible solutions.
-    Repeats until \texttt{evaluator.is\_budget\_exhausted()} reaches 30,000 evaluations.
-    Returns \texttt{best\_trip}, \texttt{best\_length}, and the evaluation history.
-\end{itemize}
+To compare the two neighborhood operators fairly, both are tested using the exact same BA settings and the same 10 independent random seeds (\(1, 2, 4, 8, 16, 32, 64, 128, 256, 512\)).
+Across the six TSPLIB instances and two operators, this gives 120 runs in total.
+For each case, the experiments record the best route length, mean route length, standard deviation (\(SD\)), mean percentage gap and mean runtime in seconds.
 
-\subsection{Experimental Setup}
-\begin{itemize}
-    \item \textbf{Runs:} 10 differnet random seeds per instance and operator (\(S = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]\)), totaling 120 TSP runs (6 instances \(\times\) 2 operators \(\times\) 10 seeds).
-    \item \textbf{Evaluation Budget:} Exactly 30,000 objective evaluations per run.
-    \item \textbf{Parameters:} Population size \(n = 20\), selected best sites \(m = 6\), elite sites \(e = 2\), elite foragers \(n_e = 20\), non-elite selected foragers \(n_s = 8\).
-    \item \textbf{Metrics:} Best route length, mean route length, standard deviation, mean percentage gap, and mean runtime in seconds.
-\end{itemize}
-
-\subsection{Results}
-
-\subsubsection{Summary Statistics}
+\subsubsection{Results}
+Table~\ref{tab:summary_statistics} summarizes the performance of both operators across all six benchmark instances over the 10 runs.
+On every instance, segment reversal achieves much shorter routes, lower mean gaps and lower standard deviations than the swap operator, while taking almost the same runtime (between 0.08~s and 0.28~s per run).
+For the two smallest instances (\texttt{eil51} and \texttt{berlin52}), segment reversal reaches mean gaps of 7.35\% and 7.93\%, compared to 33.24\% and 37.32\% for swap.
 
 \begin{table}[H]
 \caption{Performance Comparison of Swap and Segment Reversal Operators on TSPLIB Instances}
@@ -153,21 +128,17 @@ Instance & Cities & Operator & \shortstack[c]{Optimum\\(\(L^*\))} & Best & Mean 
 \end{tabular}
 \begin{tablenotes}[flushleft]
 \small
-\item \textit{Note.} All metrics are averaged over 10 independent runs (seeds \(1, 2, 4, 8, 16, 32, 64, 128, 256, 512\)) with 30,000 objective evaluations per run. Best results for each problem instance appear in bold. \(L^*\) denotes the known global optimum from TSPLIB.
+\item \textit{Note.} All metrics are averaged over 10 seeded runs with 30,000 objective evaluations per run. Best results for each problem instance appear in bold. \(L^*\) shows the known global optimum from TSPLIB.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
 
-\subsubsection{Convergence Plots}
-The convergence curves compare evaluations (0 to 30,000) against mean best-so-far route length across 10 runs for \texttt{berlin52} and \texttt{ch150}:
-
-\begin{itemize}
-    \item \textbf{Figure~\ref{fig:convergence_berlin52} (\texttt{berlin52}):} Both operators initialize from random routes with mean length \({\approx}30{,}170\).
-    Reversal drops rapidly to \({\approx}13{,}589\) by 3,000 evaluations and reaches \({\approx}9{,}183\) by 10,000 evaluations, continuing the drop in length to a final mean of 8,140.0 (near the optimum \(L^* = 7{,}542\)).
-    Swap experiences early stagnation, flattening to \({\approx}12{,}023\) by 10,000 evaluations and terminating with a sub-optimal mean of 10,356.8.
-    \item \textbf{Figure~\ref{fig:convergence_ch150} (\texttt{ch150}):} On the 150-city problem, both operators start around \({\approx}53{,}277\).
-    Reversal reaches \({\approx}21{,}699\) by 10,000 evaluations and finishes at 12,644.0, while the Swap operator stagnates early and only reaches 18,565.4.
-\end{itemize}
+Figures~\ref{fig:convergence_berlin52} and~\ref{fig:convergence_ch150} show how the mean best-so-far route length improves across the 30,000 evaluations for \texttt{berlin52} and \texttt{ch150}.
+On \texttt{berlin52} (Figure~\ref{fig:convergence_berlin52}), both operators begin from random initial routes with a mean first-scout length of about 30,170.
+Segment reversal drops quickly to around 13,589 after 3,000 evaluations and 9,183 after 10,000 evaluations, then keeps improving toward a final mean of 8,140.0, close to the optimum of 7,542.
+On the other hand, the swap operator slows down much earlier, flattening near 12,023 around 10,000 evaluations and finishing at a mean of 10,356.8.
+A similar pattern appears on the larger 150-city \texttt{ch150} instance (Figure~\ref{fig:convergence_ch150}), where both operators start near 53,277.
+In that example, the segment reversal drops to about 21,699 by 10,000 evaluations and finishes at 12,644.0, where swap stalls earlier and ends at 18,565.4.
 
 \begin{figure}[htbp]
 \centering
@@ -183,17 +154,10 @@ The convergence curves compare evaluations (0 to 30,000) against mean best-so-fa
 \label{fig:convergence_ch150}
 \end{figure}
 
-\subsubsection{Shortest Berlin52 Route}
-Across all 20 runs on \texttt{berlin52}, the single shortest route found was:
-\begin{itemize}
-    \item \textbf{Neighborhood:} Segment Reversal
-    \item \textbf{Seed:} 8
-    \item \textbf{Route Length:} 7,874
-    \item \textbf{Optimum:} 7,542
-    \item \textbf{Gap:} 4.40\%
-    \item \textbf{Route Visualization:} Plotted in Figure~\ref{fig:best_route_berlin52} with starting City~1 marked as the depot and the return leg explicitly drawn.
-    The route follows a smooth perimeter without any self-intersecting loops.
-\end{itemize}
+Across all 20 runs on \texttt{berlin52}, the single shortest route was found using the segment reversal operator with seed~8.
+This route has a total length of 7,874, which gives a percentage gap of 4.40\% above the known optimum of 7,542.
+Figure~\ref{fig:best_route_berlin52} shows this closed route with City~1 marked as the starting depot and the return leg drawn back to the start.
+The path follows a clean outer loop without crossing over itself.
 
 \begin{figure}[H]
 \centering
@@ -202,34 +166,21 @@ Across all 20 runs on \texttt{berlin52}, the single shortest route found was:
 \label{fig:best_route_berlin52}
 \end{figure}
 
-\subsection{Discussion and Analysis}
+\subsubsection{Discussion}
+The main reason segment reversal outperforms swap comes from how many city connections each move changes during the mutation.
+Because the swap operator exchanges two single cities, it breaks up to four connections at once and replaces them with new ones, which can often lead to the destruction of good partial routes that were already found.
+The segment reversal operator only breaks two connections at the ends of the chosen segment and keeps all inner connections intact in reverse order.
+In 2D Euclidean space, an optimal route never crosses itself.
+Reversing the segment between two crossing lines directly uncrosses them, where swapping the two single cities cannot untangle crossings as easily without disturbing other parts of the route.
 
-\subsubsection{Why Segment Reversal Outperforms Swap}
-\begin{itemize}
-    \item \textbf{Edge Preserving vs.\ Edge Breaking:} The route quality depends on city adjacencies (edges).
-    Swapping two non-consecutive cities breaks up to 4 edges and replaces them with 4 random edges, possibly destroying good partial paths.
-    Segment reversal breaks only 2 edges and reconnects them while preserving all internal city connections in reverse order.
-    \item \textbf{Eliminating Crossings:} In Euclidean space, optimal routes never cross themselves.
-    Reversing a segment between two crossing edges uncrosses them (standard 2-opt property).
-    Swap moves cannot uncross edges without changing other connections.
-\end{itemize}
+Looking at the convergence over time, both operators make fast progress during the first 2,000 to 5,000 evaluations because almost any local improvement removes the long random jumps in the initial routes.
+However, the swap operator runs into stagnation around 8,000 to 10,000 evaluations because single swaps can easily get trapped in local optima and cannot untangle larger parts of the route.
+Segment reversal avoids this early stagnation and continues finding steady improvements throughout the full 30,000-evaluation budget.
 
-\subsubsection{Convergence and Stagnation}
-\begin{itemize}
-    \item \textbf{Early Improvement:} Both operators achieve fast improvements in the first 2,000--5,000 evaluations by eliminating large random jumps between cities.
-    \item \textbf{Premature Stagnation in Swap:} Swap flattens early (after \({\approx}8{,}000\)--\(10{,}000\) evaluations) because single swaps cannot untangle complex route entanglements.
-    \item \textbf{Continuous Improvements in Reversal:} Reversal continues making steady improvements throughout the full 30,000 evaluations.
-\end{itemize}
+None of the 120 runs reached the exact TSPLIB optimum and the larger instances highlight the limits of the fixed budget, but with segment reversal, the mean gap stays below 8\% on \texttt{eil51} and \texttt{berlin52} and below 15\% on \texttt{st70} and \texttt{eil76}.
+However, as the number of cities grows to 100 and 150, the number of possible routes grows enormously, so 30,000 evaluations only sample a tiny fraction of the search space.
+As a result, even segment reversal ends with mean gaps of 41.94\% on \texttt{kroA100} and 93.69\% on \texttt{ch150}, while swap can be considered unsuccessful on these larger instances with gaps of 137.77\% and 184.40\%.
 
-\subsubsection{Effect of Problem Scale}
-\begin{itemize}
-    \item For smaller instances (\texttt{eil51}, \texttt{berlin52}), Reversal reaches mean gaps below 8\%.
-    \item As the problem size grows to 100 and 150 cities, the permutation space grows factorially (\((n-1)! / 2\)).
-    \item Under the fixed 30,000-evaluation budget, the fraction of the search space sampled becomes much smaller, causing mean gaps to increase to 41.94\% on \texttt{kroA100} and 93.69\% on \texttt{ch150}.
-\end{itemize}
-
-\subsubsection{Consistency Across Runs}
-\begin{itemize}
-    \item Reversal produces consistently lower standard deviations across all 10 seeds (e.g., \(SD = 9.97\) vs.\ \(20.16\) on \texttt{eil51}; \(SD = 208.44\) vs.\ \(501.44\) on \texttt{berlin52}).
-    \item The combination of elite site exploitation and continuous random scouting allows the algorithm to converge reliably regardless of the starting seed.
-\end{itemize}
+Finally, segment reversal is much more consistent from run to run than swap.
+Across all six instances, it achieves lower standard deviations, such as \(SD = 9.97\) versus \(20.16\) on \texttt{eil51} and \(SD = 208.44\) versus \(501.44\) on \texttt{berlin52}.
+Combining local search on elite sites with continuous random scouting helps the algorithm converge reliably across different random seeds when paired with a neighborhood move that keeps good route structure.
