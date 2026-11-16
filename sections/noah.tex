@@ -1,10 +1,9 @@
 % !TEX root = ../main.tex
 \subsection{Continuous Function Optimization}
-In this section, the Bees Algorithm is applied for the purposes of continuous function optimization. 
+In this section, the Bees Algorithm is applied for the purposes of continuous function optimization.
+Here the representation is a vector of D real numbers, where D is the number of dimensions.
+
 The functions we aim to optimize are unshifted, noiseless functions from Surjanovic and Bingham's Simon Fraser University collection \cite{surjanovic_bingham}. 
-For benchmarking, 10 runs were performed at dimensions 10 and 30 with a limit of 30,000 objective evaluations. 
-The numpy function implementations were tested to confirm the global minimum along with one other control point derived from the function equations, this was done in "\textit{check\_functions.py}", with all checks passing.
-The optimization targets are:
 
 \textbf{Sphere:} 
 
@@ -32,8 +31,12 @@ Bounds: \(x_i \in [-5.12,5.12]\). Checked: \(f(0)=0\) and \(f(0.5)=20.25D\).
 \end{equation}
 Bounds: \(x_i \in [-32.768,32.768]\). Checked: \(f(0)=0\) and \(f(1) \approx 3.62538\).
 
+The numpy function implementations were tested with a floating-point tolerance of $10^{-12}$ to confirm the global minimum along with one other control point derived from the function equations. This was done in "\textit{check\_functions.py}", with all checks passing.
+
+\vfill
+
 \subsubsection{Implementation}
-This implementation of the Bees Algorithm is primarily based upon the implementation described in the 2009 paper from Pham \& Castellani \cite{Pham2009}. In contrast to the TSP problem, the scout bees are initialized uniformally within the function bounds.
+This implementation of the Bees Algorithm is primarily based upon the implementation described in the 2009 paper from Pham \& Castellani \cite{Pham2009}. In contrast to the TSP problem, the scout bees are initialized uniformally within the function bounds, and ranked with an ascending sort.
 
 \begin{table}[H]
 \centering
@@ -51,7 +54,7 @@ $n_{rb}$     & 6      & Bees recruited per remaining best site \\
 $ngh$        & 0.1    & Initial neighborhood size as fraction of bounds \\
 $stlim$      & 20     & Stagnant cycles before a site is abandoned \\
 $\alpha$     & 0.95   & Neighborhood shrink factor ($0 < \alpha < 1$) \\
-$E_{\max}$   & 30,000 &Maximum number of function evaluations \\
+$E_{\max}$   & 30,000 & Maximum number of function evaluations \\
 \hline
 \end{tabular}
 \end{table}
@@ -80,11 +83,59 @@ $E_{\max}$   & 30,000 &Maximum number of function evaluations \\
 \end{algorithmic}
 \end{algorithm}
 
-What differentiates this version from the original 2006 implementation is the introduction of site abandonment.
+The main difference from the original 2006 implementation is the introduction of site abandonment.
 This addition allows for more exploration in the problem space by abandoning sites that have not improved for the last $stlim$ cycles.
-The algorithm also has neighborhood shrinkage proportional to the bounds of the problem space, which addresses insufficient search precision by honing in on promising areas.
+A given neighborhood is clipped to the bounds of the problem space, and neighborhood shrinkage makes up for the large initial range, honing in on promising areas.
 Since running the full benchmark was quite fast with the cap of 30,000 evaluations, it was feasible to do a sweep to find general parameters that achieve good scores overall on this varied set of problems.
+The only constant was $ngh=0.1$, as it was specified in the assignment brief.
 
 \subsubsection{Results}
 
+Each function was run 10 times at $D=10$ and $D=30$ with a budget of 30,000 evaluations per run.
+The settings in Table~\ref{tab:bees-params} were used along with per-run seeds derived from a single master seed, 42.
 
+\begin{table}[ht]
+\centering
+\caption{Final objective values over 10 runs (30,000 evaluations each).}
+\label{tab:bafuncsummary}
+\begin{tabular}{llrrrrr}
+\toprule
+Function & $D$ & Mean initial & Best & Mean & Std & Runtime (s) \\
+\midrule
+Sphere     & 10 & 46.2 & $2.44\times10^{-19}$ & $5.38\times10^{-19}$ & $1.90\times10^{-19}$ & 0.090 \\
+           & 30 & 189.1 & $2.33\times10^{-12}$ & $1.19\times10^{-11}$ & $8.07\times10^{-12}$ & 0.094 \\
+Rosenbrock & 10 & $3.04\times10^{5}$ & 0.0434 & 3.06 & 2.02 & 0.171 \\
+           & 30 & $2.23\times10^{6}$ & 20.1 & 25.2 & 2.31 & 0.175 \\
+Rastrigin  & 10 & 134.8 & 20.9 & 24.6 & 3.03 & 0.146 \\
+           & 30 & 462.9 & 88.6 & 133.4 & 25.0 & 0.153 \\
+Ackley     & 10 & 20.5 & $4.51\times10^{-9}$ & $9.72\times10^{-9}$ & $3.99\times10^{-9}$ & 0.169 \\
+           & 30 & 20.9 & 1.16 & 2.03 & 0.499 & 0.175 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:bafuncsummary} summarises the results of all four functions, and Figure~\ref{fig:ba-boxplots} shows the distribution of final values at $D=30$.
+The algorithm performs best on Sphere, reaching the global minimum of 0 to within $10^{-11}$. 
+Ackley is also solved at $D=10$, but at $D=30$ runs land in local minima. 
+On Rosenbrock the algorithm makes good progress at $D=10$, falling from a mean of $10^5$ to $3.06$, but ultimately does not reach global optimum. 
+Performance is the worst on Rastrigin, with mean final values of 24.6 and 133.4 respectively.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{results/final_boxplots_d30.png}
+    \caption{Boxplots of final objectives for all four functions at D=30.}
+    \label{fig:ba-boxplots}
+\end{figure}
+
+\subsection{Discussion}
+
+To understand the implementation's shortcomings, an examination of the worst case is in order.
+Figure~\ref{fig:ba-rastrigin} shows how the algorithm quickly converges before stalling at $\approx$5,000 evaluations. 
+This highlights the main issue with the local search
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{results/rastrigin_convergence.png}
+    \caption{Rastrigin D=10: evaluations against mean best-so-far objective across 10 runs.}
+    \label{fig:ba-rastrigin}
+\end{figure}
