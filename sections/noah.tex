@@ -8,20 +8,20 @@ The functions we aim to optimize are unshifted, noiseless functions from Surjano
 \textbf{Sphere:} 
 
 \begin{equation}
-    f(x)=\sum_{i=1}^{D}x_i^2
+    f(\mathbf{x})=\sum_{i=1}^{D}x_i^2
 \end{equation}
 Bounds: \(x_i \in [-5.12,5.12]\). Checked: \(f(0)=0\) and \(f(1) = D\).
 
 \textbf{Rosenbrock:}
 
 \begin{equation}
-    f(x)=\sum_{i=1}^{D-1}[100(x_{i+1}-x_i^2)^2+(1-x_i)^2]
+    f(\mathbf{x})=\sum_{i=1}^{D-1}[100(x_{i+1}-x_i^2)^2+(1-x_i)^2]
 \end{equation}
 Bounds: \(x_i \in [-5,10]\). Checked: \(f(1)=0\) and \(f(0)=D-1\).
 
 \textbf{Rastrigin:}
 \begin{equation}
-    f(x)=10D+\sum_{i=1}^{D}[x_i^2-10cos(2\pi x_i)]
+    f(\mathbf{x})=10D+\sum_{i=1}^{D}[x_i^2-10\cos(2\pi x_i)]
 \end{equation}
 Bounds: \(x_i \in [-5.12,5.12]\). Checked: \(f(0)=0\) and \(f(0.5)=20.25D\).
 
@@ -36,11 +36,16 @@ The numpy function implementations were tested with a floating-point tolerance o
 \vfill
 
 \subsubsection{Implementation}
-This implementation of the Bees Algorithm is primarily based upon the implementation described in the 2009 paper from Pham \& Castellani \cite{Pham2009}. In contrast to the TSP problem, the scout bees are initialized uniformally within the function bounds, and ranked with an ascending sort.
+In contrast to the TSP problem, the scout bees are initialized uniformly within the function bounds, and ranked by an ascending sort.
+Each recruit is drawn uniformly from the neighborhood around the site, then clipped to the function bounds.
+Neighborhood size starts at $\pm10\%$ of function bounds in each coordinate from the site, but shrinks by a factor of $\alpha$ if there is no improvement.
+The main difference from the original 2006 implementation \cite{Pham2006} is site abandonment which was introduced in Pham \& Castellani 2009 \cite{Pham2009}.
+This addition allows for more exploration in the problem space by abandoning sites that have not improved for the last $stlim$ cycles, abandonment also resets the neighborhood. The overall best solution is retained separately, so it cannot be discarded.
+Every evaluation counts towards the budget, and the algorithm throws an exception when the budget is reached, stopping mid-iteration.
 
 \begin{table}[H]
 \centering
-\caption{Parameters and values used in the experiment}
+\caption{Parameters used in the experiment, selected with exploratory testing.}
 \label{tab:bees-params}
 \begin{tabular}{lll}
 \hline
@@ -63,7 +68,8 @@ $E_{\max}$   & 30,000 & Maximum number of function evaluations \\
 \caption{Bees Algorithm with Site Abandonment}
 \label{alg:beesfunc}
 \begin{algorithmic}[1]
-\State Initialize and evaluate $n_s$ random sites within bounds
+\State Initialize and evaluate $n_s$ random sites
+\State Set neighborhood radiuses to $ngh(b_{\max}-b_{\min})$ and stagnation counters to zero
 \While{fewer than $E_{\max}$ evaluations}
     \State Rank sites by fitness (ascending)
     \For{each of the $n_b$ best sites}
@@ -74,20 +80,15 @@ $E_{\max}$   & 30,000 & Maximum number of function evaluations \\
             \State Shrink neighborhood by $\alpha$ and increment counter
             \If{counter $\geq stlim$}
                 \State Abandon site and reinitialize randomly
+                \State Reset neighborhood radius and stagnation counter
             \EndIf
         \EndIf
     \EndFor
-    \State Reinitialize remaining $n_s - n_b$ sites randomly
+    \State Reinitialize and evaluate remaining $n_s - n_b$ sites randomly
 \EndWhile
 \State \Return best solution found $(\mathbf{x}^*, f(x^*))$
 \end{algorithmic}
 \end{algorithm}
-
-The main difference from the original 2006 implementation is the introduction of site abandonment.
-This addition allows for more exploration in the problem space by abandoning sites that have not improved for the last $stlim$ cycles.
-A given neighborhood is clipped to the bounds of the problem space, and neighborhood shrinkage makes up for the large initial range, honing in on promising areas.
-Since running the full benchmark was quite fast with the cap of 30,000 evaluations, it was feasible to do a sweep to find general parameters that achieve good scores overall on this varied set of problems.
-The only constant was $ngh=0.1$, as it was specified in the assignment brief.
 
 \subsubsection{Results}
 
@@ -115,10 +116,10 @@ Ackley     & 10 & 20.5 & $4.51\times10^{-9}$ & $9.72\times10^{-9}$ & $3.99\times
 \end{table}
 
 Table~\ref{tab:bafuncsummary} summarises the results of all four functions, and Figure~\ref{fig:ba-boxplots} shows the distribution of final values at $D=30$.
-The algorithm performs best on Sphere, reaching the global minimum of 0 to within $10^{-11}$. 
-Ackley is also solved at $D=10$, but at $D=30$ runs land in local minima. 
-On Rosenbrock the algorithm makes good progress at $D=10$, falling from a mean of $10^5$ to $3.06$, but ultimately does not reach global optimum. 
-Performance is the worst on Rastrigin, with mean final values of 24.6 and 133.4 respectively.
+The algorithm performs best on Sphere, achieving objective values on the order of $10^{-11}$ at $D=30$. 
+Ackley is also solved at $D=10$, but at $D=30$ runs seem to land in local minima. 
+On Rosenbrock the algorithm makes good progress at $D=10$, falling from a mean of $\approx3\times10^{5}$ to $3.06$, but ultimately does not reach global optimum. 
+Performance is especially bad on Rastrigin and Rosenbrock.
 
 \begin{figure}[H]
     \centering
@@ -127,11 +128,13 @@ Performance is the worst on Rastrigin, with mean final values of 24.6 and 133.4 
     \label{fig:ba-boxplots}
 \end{figure}
 
-\subsection{Discussion}
+\subsubsection{Discussion}
 
-To understand the implementation's shortcomings, an examination of the worst case is in order.
-Figure~\ref{fig:ba-rastrigin} shows how the algorithm quickly converges before stalling at $\approx$5,000 evaluations. 
-This highlights the main issue with the local search
+All runs improve substantially on their best initial solution, but function topology is decisive. Rosenbrock presents a marked challenge with its narrow valley making progression hard.
+Rastrigin has many local minima, which make the search inherently difficult.
+This is reflected in the results, where Rastrigin only falls from 134.8 to 24.6 even at $D=10$, while Sphere and Ackley (also at $D=10$) fall by many orders of magnitude.
+To understand why further improvement becomes challenging, an examination of Rastrigin's convergence is in order.
+Figure~\ref{fig:ba-rastrigin} shows that the best value improves rapidly before stalling at around 5,000 evaluations.
 
 \begin{figure}[H]
     \centering
@@ -139,3 +142,28 @@ This highlights the main issue with the local search
     \caption{Rastrigin D=10: evaluations against mean best-so-far objective across 10 runs.}
     \label{fig:ba-rastrigin}
 \end{figure}
+
+One likely cause is the local search, which picks a point within the neighborhood uniformly, moving each coordinate at the same time. This independent movement of every coordinate makes finding an overall improvement more difficult on complicated landscapes.
+Additional tests in lower-dimensional spaces (Table~\ref{tab:ba-dims}) show that results get progressively worse for Rastrigin and Rosenbrock as the dimensionality increases.
+The higher dimensionality also means sparser coverage of the search space because of the fixed budget.
+
+Run-to-run variability is negligible for Sphere and Ackley at $D=10$, as they are already at high precision.
+One exception is Rosenbrock at $D=10$, where variability is high. This was because two runs achieved substantially better results, close to the optimum, while the eight remaining performed substantially worse.
+The rest of the results have moderate variability.
+
+\begin{table}[ht]
+\centering
+\caption{Mean final objective values at different dimensions.}
+\label{tab:ba-dims}
+\begin{tabular}{rrrrr}
+\toprule
+$D$ & Sphere & Rosenbrock & Rastrigin & Ackley \\
+\midrule
+2  & $1.1\times10^{-10}$ & $1.4\times10^{-7}$ & $7.1\times10^{-4}$ & $2.2\times10^{-4}$ \\
+3  & $4.7\times10^{-13}$ & $6.1\times10^{-3}$ & 0.64  & $2.7\times10^{-6}$ \\
+5  & $2.0\times10^{-18}$ & 0.22  & 3.73  & $3.6\times10^{-10}$ \\
+10 & $5.4\times10^{-19}$ & 3.06  & 24.6  & $9.7\times10^{-9}$ \\
+30 & $1.2\times10^{-11}$ & 25.2  & 133.4 & 2.03 \\
+\bottomrule
+\end{tabular}
+\end{table}
